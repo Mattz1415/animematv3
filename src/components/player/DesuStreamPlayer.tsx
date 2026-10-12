@@ -57,7 +57,12 @@ export const DesuStreamPlayer: React.FC<DesuStreamPlayerProps> = ({
 
   const { playBlip } = useCyberSound();
 
-  const currentStreamUrl = customStreamUrl || defaultStreamUrl;
+  const ensureHttps = (url: string) => {
+    if (!url) return '';
+    return url.replace(/^http:\/\//i, 'https://');
+  };
+
+  const currentStreamUrl = ensureHttps(customStreamUrl || defaultStreamUrl);
 
   // Compute effective iframe src:
   // Tunnel proxy strips all blocking headers and neutralizes anti-embed scripts
@@ -99,16 +104,31 @@ export const DesuStreamPlayer: React.FC<DesuStreamPlayerProps> = ({
     setTimeout(() => setFeedbackNotice(null), 4000);
   }, [currentStreamUrl, playBlip]);
 
-  // Listen for recovery messages from /public/sandboxed.html
+  // Listen for recovery messages from proxy or /public/sandboxed.html
   useEffect(() => {
     const handleMsg = (e: MessageEvent) => {
       if (e.data?.type === 'SANKA_OPEN_POPOUT') {
         handleLaunchPopout();
+      } else if (e.data?.type === 'SANKA_SWITCH_DIRECT') {
+        playBlip('switch');
+        if (e.data?.url && typeof e.data.url === 'string') {
+          setCustomStreamUrl(ensureHttps(e.data.url));
+        }
+        setUseProxy(false);
+        setHasError(false);
+        setIframeKey((prev) => prev + 1);
+        setFeedbackNotice('🌐 Dialihkan ke Mode Direct Browser (Client IP Lokal)');
+        setTimeout(() => setFeedbackNotice(null), 3500);
+      } else if (e.data?.type === 'SANKA_RECOVER_VIDHIDE') {
+        playBlip('switch');
+        setUseProxy(false);
+        setHasError(false);
+        setIframeKey((prev) => prev + 1);
       }
     };
     window.addEventListener('message', handleMsg);
     return () => window.removeEventListener('message', handleMsg);
-  }, [handleLaunchPopout]);
+  }, [handleLaunchPopout, playBlip]);
 
   const handleOpenNewTab = (e?: React.MouseEvent) => {
     if (e) {
@@ -168,8 +188,11 @@ export const DesuStreamPlayer: React.FC<DesuStreamPlayerProps> = ({
     try {
       const newUrl = await animeApi.getServerStreamUrl(serverId);
       if (newUrl) {
-        setCustomStreamUrl(newUrl);
+        const cleanNewUrl = ensureHttps(newUrl);
+        setCustomStreamUrl(cleanNewUrl);
         setActiveServerName(`${quality} - ${serverTitle}`);
+        setUseProxy(true);
+        setHasError(false);
         setIframeKey((k) => k + 1);
         playBlip('success');
         setFeedbackNotice(`⚡ Server aktif: ${serverTitle} (${quality})`);
@@ -406,7 +429,22 @@ export const DesuStreamPlayer: React.FC<DesuStreamPlayerProps> = ({
               <p className="text-xs text-zinc-400 max-w-md mt-1 leading-relaxed">
                 Mirror ini sedang tidak merespons. Klik server alternatif di bawah atau gunakan Popout Player:
               </p>
-              <div className="mt-4 flex gap-3">
+              <div className="mt-4 flex flex-wrap justify-center gap-3">
+                <button
+                  onClick={() => {
+                    playBlip('switch');
+                    setUseProxy(false);
+                    setHasError(false);
+                    setIsLoading(true);
+                    setIframeKey((k) => k + 1);
+                    setFeedbackNotice('🌐 Mencoba Mode Direct lewat Browser');
+                    setTimeout(() => setFeedbackNotice(null), 3000);
+                  }}
+                  className="px-4 py-2.5 text-xs font-mono bg-zinc-800 hover:bg-zinc-700 text-cyan-300 border border-cyan-800/60 rounded-xl flex items-center gap-1.5 transition-colors"
+                >
+                  <Radio className="w-3.5 h-3.5" />
+                  <span>Putar Langsung (Client IP)</span>
+                </button>
                 <button
                   onClick={handleLaunchPopout}
                   className="px-5 py-2.5 text-xs font-mono font-bold bg-red-600 hover:bg-red-500 text-white rounded-xl shadow-[0_0_20px_rgba(220,38,38,0.5)] flex items-center gap-2"
@@ -424,7 +462,7 @@ export const DesuStreamPlayer: React.FC<DesuStreamPlayerProps> = ({
             </div>
           )}
 
-          {/* Clean Video Iframe (No sandbox attribute to eliminate VidHide restrictions) */}
+          {/* Clean Video Iframe with no-referrer policy */}
           {effectiveIframeSrc ? (
             <iframe
               key={iframeKey}
@@ -433,10 +471,19 @@ export const DesuStreamPlayer: React.FC<DesuStreamPlayerProps> = ({
               className="w-full h-full border-0 bg-black"
               allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen"
               allowFullScreen
+              referrerPolicy="no-referrer"
               onLoad={() => setIsLoading(false)}
               onError={() => {
                 setIsLoading(false);
-                setHasError(true);
+                if (useProxy) {
+                  // Automatic client-side fallback: switch to direct embed with user residential IP
+                  setUseProxy(false);
+                  setIframeKey((prev) => prev + 1);
+                  setFeedbackNotice('🌐 Mengalihkan otomatis ke koneksi direct (IP Lokal)...');
+                  setTimeout(() => setFeedbackNotice(null), 3000);
+                } else {
+                  setHasError(true);
+                }
               }}
             />
           ) : (

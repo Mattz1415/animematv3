@@ -23,9 +23,9 @@ export const CountdownTimer: React.FC<CountdownTimerProps> = ({
   const [timeLeft, setTimeLeft] = useState<string>('');
 
   useEffect(() => {
-    if (!releaseDay) return;
+    if (!releaseDay || typeof releaseDay !== 'string') return;
 
-    const targetDayIndex = DAY_MAP[releaseDay.toLowerCase()];
+    const targetDayIndex = DAY_MAP[releaseDay.trim().toLowerCase()];
     if (targetDayIndex === undefined) return;
 
     const updateTimer = () => {

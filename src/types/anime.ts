@@ -41,6 +41,8 @@ export interface GenreItem {
   href: string;
   slug?: string;
   otakudesuUrl?: string;
+  name?: string;
+  title?: string;
 }
 
 export interface ScheduleAnimeItem {

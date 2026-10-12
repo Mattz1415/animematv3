@@ -47,9 +47,9 @@ export const comicApi = {
     const res = await axiosClient.get('/comic/komikindo/genres');
     const data = res.data;
     const list = data?.genreList || data?.data || data?.genres || (Array.isArray(data) ? data : []);
-    return list.map((g: { name: string; value?: string; slug?: string }) => ({
-      name: g.name,
-      slug: g.value || g.slug || g.name.toLowerCase(),
+    return list.map((g: { name?: string; value?: string; slug?: string }) => ({
+      name: g?.name || 'Unknown',
+      slug: g?.value || g?.slug || (typeof g?.name === 'string' ? g.name.toLowerCase() : 'all'),
     }));
   },
 };

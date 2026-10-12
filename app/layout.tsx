@@ -4,6 +4,7 @@ import './globals.css'; // Global styles
 export const metadata: Metadata = {
   title: 'SankaVerse - Cyberpunk Anime & Comic Nexus',
   description: 'Production-grade streaming and comic reading hub integrated with Sanka Vollerei API featuring anime, donghua, manga, Desustream player, and offline library.',
+  referrer: 'no-referrer',
   openGraph: {
     title: 'SankaVerse - Cyberpunk Anime & Comic Nexus',
     description: 'Production-grade streaming and comic reading hub integrated with Sanka Vollerei API featuring anime, donghua, manga, Desustream player, and offline library.',
@@ -19,6 +20,9 @@ export const metadata: Metadata = {
 export default function RootLayout({children}: {children: React.ReactNode}) {
   return (
     <html lang="en" className="dark bg-zinc-950 text-zinc-100 selection:bg-red-600/30 selection:text-red-300">
+      <head>
+        <meta name="referrer" content="no-referrer" />
+      </head>
       <body suppressHydrationWarning className="min-h-screen bg-zinc-950 text-zinc-100 antialiased overflow-x-hidden">{children}</body>
     </html>
   );

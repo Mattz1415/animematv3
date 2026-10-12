@@ -277,15 +277,21 @@ export const AnimeDetailPage: React.FC = () => {
             {/* Genre Chips */}
             {anime.genreList && anime.genreList.length > 0 && (
               <div className="flex flex-wrap gap-2">
-                {anime.genreList.map((g) => (
-                  <Link
-                    key={g.title}
-                    to={`/genres?slug=${g.title.toLowerCase()}`}
-                    className="px-3 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-red-600/60 text-xs font-mono transition-colors"
-                  >
-                    #{g.title}
-                  </Link>
-                ))}
+                {anime.genreList.map((g: any, idx: number) => {
+                  const title = typeof g === 'string' ? g : g?.title || g?.genre || g?.name || `Genre ${idx + 1}`;
+                  const slug = (typeof g === 'object' && g?.href)
+                    ? g.href.replace(/^\/anime\/genre\//, '').replace(/^\/genre\//, '').replace(/^\//, '')
+                    : title.toLowerCase().replace(/\s+/g, '-');
+                  return (
+                    <Link
+                      key={slug || title || idx}
+                      to={`/genres?slug=${slug}`}
+                      className="px-3 py-1 rounded-lg bg-zinc-900 border border-zinc-800 text-zinc-300 hover:text-white hover:border-red-600/60 text-xs font-mono transition-colors"
+                    >
+                      #{title}
+                    </Link>
+                  );
+                })}
               </div>
             )}
 

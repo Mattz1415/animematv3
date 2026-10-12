@@ -60,14 +60,27 @@ export const GenrePage: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Find human readable title for the selected genre
-  const selectedGenreObj = genresList.find(
-    (g) =>
-      g.slug === selectedGenreSlug ||
-      g.genre.toLowerCase() === selectedGenreSlug.toLowerCase() ||
-      (g.href && g.href.includes(selectedGenreSlug))
-  );
-  const activeGenreTitle = selectedGenreObj?.genre || selectedGenreSlug.replace(/-/g, ' ');
+  // Find human readable title for the selected genre safely
+  const selectedGenreObj = genresList.find((g: any) => {
+    if (!g) return false;
+    const gSlug =
+      g.slug ||
+      (typeof g.href === 'string'
+        ? g.href.replace(/^\/anime\/genre\//, '').replace(/^\/genre\//, '').replace(/^\//, '')
+        : '');
+    const gName = typeof g === 'string' ? g : g.genre || g.name || g.title || '';
+    return (
+      (gSlug && gSlug.toLowerCase() === selectedGenreSlug.toLowerCase()) ||
+      (typeof gName === 'string' && gName.toLowerCase() === selectedGenreSlug.toLowerCase()) ||
+      (typeof g.href === 'string' && g.href.toLowerCase().includes(selectedGenreSlug.toLowerCase()))
+    );
+  });
+
+  const activeGenreTitle =
+    (typeof selectedGenreObj === 'string'
+      ? selectedGenreObj
+      : selectedGenreObj?.genre || selectedGenreObj?.name || selectedGenreObj?.title) ||
+    selectedGenreSlug.replace(/-/g, ' ');
 
   return (
     <div className="space-y-8">
@@ -110,17 +123,24 @@ export const GenrePage: React.FC = () => {
           </div>
         ) : (
           <div className="flex flex-wrap gap-2 max-h-36 overflow-y-auto p-1.5 rounded-xl bg-zinc-900/50 border border-zinc-800/80 scrollbar-thin">
-            {genresList.map((g) => {
+            {genresList.map((g: any, idx: number) => {
+              if (!g) return null;
+              const genreName =
+                typeof g === 'string'
+                  ? g
+                  : g.genre || g.name || g.title || `Genre ${idx + 1}`;
               const slug =
                 g.slug ||
-                (g.href
+                (typeof g.href === 'string' && g.href
                   ? g.href.replace(/^\/anime\/genre\//, '').replace(/^\/genre\//, '').replace(/^\//, '')
-                  : g.genre.toLowerCase());
-              const isSelected = selectedGenreSlug === slug;
+                  : typeof genreName === 'string'
+                  ? genreName.toLowerCase().replace(/\s+/g, '-')
+                  : `genre-${idx}`);
+              const isSelected = selectedGenreSlug.toLowerCase() === slug.toLowerCase();
 
               return (
                 <button
-                  key={slug || g.genre}
+                  key={slug || genreName || idx}
                   onClick={() => handleSelectGenre(slug)}
                   className={`px-3 py-1.5 rounded-lg text-xs font-mono font-medium transition-all ${
                     isSelected
@@ -128,7 +148,7 @@ export const GenrePage: React.FC = () => {
                       : 'bg-zinc-900 text-zinc-400 hover:text-white hover:bg-zinc-800 border border-zinc-800'
                   }`}
                 >
-                  {g.genre}
+                  {genreName}
                 </button>
               );
             })}
